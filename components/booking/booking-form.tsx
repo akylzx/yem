@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { CalendarIcon, ClockIcon, UserIcon, HeartIcon, CheckCircleIcon, AlertCircleIcon } from "lucide-react"
 
+
 interface BookingData {
   // Patient Information
   firstName: string

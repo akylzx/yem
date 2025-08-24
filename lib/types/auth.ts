@@ -1,52 +1,30 @@
 export interface UserProfile {
   id: string
   email: string
-  first_name: string
-  last_name: string
-  display_name: string
-  avatar_url?: string
+  full_name: string
+  role: "patient" | "doctor" | "admin" | "staff"
   phone?: string
   date_of_birth?: string
   gender?: "male" | "female" | "other" | "prefer_not_to_say"
-  address?: {
-    street?: string
-    city?: string
-    state?: string
-    zip?: string
-    country?: string
-  }
-  emergency_contact?: {
-    name?: string
-    phone?: string
-    relationship?: string
-  }
-  medical_info?: {
-    blood_type?: string
-    allergies?: string[]
-    medications?: string[]
-    conditions?: string[]
-    insurance?: {
-      provider?: string
-      policy_number?: string
-      group_number?: string
-    }
-  }
-  preferences?: {
-    notifications?: {
-      email?: boolean
-      sms?: boolean
-      push?: boolean
-    }
-    privacy?: {
-      profile_visibility?: "public" | "private"
-      data_sharing?: boolean
-    }
-  }
-  role: "patient" | "doctor" | "admin" | "staff"
-  is_active: boolean
-  email_verified: boolean
-  phone_verified: boolean
-  two_factor_enabled: boolean
+  blood_type?: string
+  medical_condition?: string
+  allergies?: string[]
+  medications?: string[]
+  insurance_provider?: string
+  insurance_policy_number?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  address?: string
+  city?: string
+  state?: string
+  postal_code?: string
+  country?: string
+  preferred_language?: string
+  notification_preferences?: string // or a JSON object if you store preferences as JSON
+  favorite_clinics?: string[]       // or string if you store as comma-separated
+  avatar_url?: string
+  onboarding_completed: boolean
+  last_login?: string
   created_at: string
   updated_at: string
 }

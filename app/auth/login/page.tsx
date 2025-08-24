@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-// import { createClient } from "@/lib/supabase/client"
+import { supabase} from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -32,17 +31,18 @@ function LoginForm() {
     setError(null)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
       if (!email || !password) {
         throw new Error("Please fill in all fields")
       }
-
       if (password.length < 6) {
         throw new Error("Password must be at least 6 characters")
       }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) throw error
 
-      console.log("[v0] Mock login successful for:", email)
       router.push(redirectTo)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
@@ -52,19 +52,22 @@ function LoginForm() {
   }
 
   const handleOAuthLogin = async (provider: "google" | "github" | "microsoft") => {
-    setOauthLoading(provider)
-    setError(null)
+  setOauthLoading(provider)
+  setError(null)
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      console.log("[v0] Mock OAuth login successful with:", provider)
-      router.push(redirectTo)
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
-      setOauthLoading(null)
-    }
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+      },
+    })
+    if (error) throw error
+  } catch (error: unknown) {
+    setError(error instanceof Error ? error.message : "An error occurred")
+    setOauthLoading(null)
   }
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">

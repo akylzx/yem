@@ -1,158 +1,194 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
+import "leaflet/dist/leaflet.css"
+import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css"
+import "leaflet-defaulticon-compatibility"
+import L from "leaflet"
+import { useEffect } from "react"
 
+// Fix for default markers in Next.js/React
+delete (L.Icon.Default.prototype as any)._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+})
+
+// Custom clinic icon (medical marker)
+const clinicIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiNEQzI2MjYiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxyZWN0IHg9IjE0IiB5PSIxMCIgd2lkdGg9IjQiIGhlaWdodD0iMTIiIGZpbGw9IndoaXRlIi8+CjxyZWN0IHg9IjEwIiB5PSIxNCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32],
+})
+
+// Alternative green medical icon
+const greenClinicIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiMxNkEzNEEiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxyZWN0IHg9IjE0IiB5PSIxMCIgd2lkdGg9IjQiIGhlaWdodD0iMTIiIGZpbGw9IndoaXRlIi8+CjxyZWN0IHg9IjEwIiB5PSIxNCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjQiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32],
+})
+
+// Define the Clinic interface to match your data structure
 interface Clinic {
   id: number
   name: string
-  rating: number
-  address: string
   coordinates: [number, number]
+  address: string
+  rating: number
   phone: string
-  price: string
-  nextAvailable: string
+  specialties: string[]
+  next_available: string | null
   featured: boolean
 }
 
-interface MapComponentProps {
+interface MapProps {
   clinics: Clinic[]
   onClinicSelect: (clinicId: number) => void
 }
 
-export default function MapComponent({ clinics, onClinicSelect }: MapComponentProps) {
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<any>(null)
-  const [isLoaded, setIsLoaded] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !mapRef.current) return
-
-    const initMap = async () => {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 100))
-
-        if (!mapRef.current) {
-          console.log("[v0] Map container still not available after timeout")
-          return
-        }
-
-        const L = (await import("leaflet")).default
-
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.remove()
-          mapInstanceRef.current = null
-        }
-
-        delete (L.Icon.Default.prototype as any)._getIconUrl
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-          iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-        })
-
-        if (!mapRef.current) {
-          console.log("[v0] Map container disappeared during initialization")
-          return
-        }
-
-        const map = L.map(mapRef.current).setView([40.7589, -73.9851], 13)
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }).addTo(map)
-
-        setTimeout(() => {
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.invalidateSize()
-          }
-        }, 100)
-
-        const greenIcon = L.divIcon({
-          html: `<div class="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg">
-                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                     <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                   </svg>
-                 </div>`,
-          className: "custom-div-icon",
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-        })
-
-        clinics.forEach((clinic) => {
-          const marker = L.marker(clinic.coordinates, { icon: greenIcon }).addTo(map)
-
-          const popupContent = `
-            <div class="p-3 min-w-[250px]">
-              <h3 class="font-bold text-lg mb-2">${clinic.name}</h3>
-              <div class="flex items-center gap-1 mb-2">
-                <svg class="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                </svg>
-                <span class="font-semibold">${clinic.rating}</span>
-              </div>
-              <p class="text-sm text-gray-600 mb-2">${clinic.address}</p>
-              <p class="text-sm text-gray-600 mb-2">${clinic.phone}</p>
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-green-600 font-bold">${clinic.price}</span>
-                <span class="text-sm ${clinic.nextAvailable.includes("Today") ? "text-green-600" : "text-gray-600"}">${clinic.nextAvailable}</span>
-              </div>
-              <button 
-                onclick="window.selectClinic(${clinic.id})"
-                class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
-              >
-                View Details
-              </button>
-            </div>
-          `
-
-          marker.bindPopup(popupContent, {
-            maxWidth: 300,
-            className: "custom-popup",
-          })
-        })
-
-        if (clinics.length > 0) {
-          const group = L.featureGroup(clinics.map((clinic) => L.marker(clinic.coordinates)))
-          map.fitBounds(group.getBounds().pad(0.1))
-        }
-
-        mapInstanceRef.current = map
-        setIsLoaded(true)
-        console.log("[v0] Map initialized successfully")
-      } catch (error) {
-        console.error("[v0] Map initialization error:", error)
-      }
-    }
-
-    const timer = setTimeout(initMap, 200)
-
-    return () => {
-      clearTimeout(timer)
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-      delete (window as any).selectClinic
-      setIsLoaded(false)
-    }
-  }, [clinics, onClinicSelect])
-
+// Custom component to handle markers
+function MapMarkers({ clinics, onClinicSelect }: MapProps) {
   return (
     <>
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-        crossOrigin=""
-      />
-      <div className="relative">
-        <div ref={mapRef} className="h-96 w-full rounded-lg" />
-        {!isLoaded && (
-          <div className="absolute inset-0 bg-gray-100 rounded-lg flex items-center justify-center">
-            <div className="text-gray-500">Loading map...</div>
-          </div>
-        )}
-      </div>
+      {clinics.map((clinic) => {
+        // Validate coordinates
+        if (!clinic.coordinates || 
+            !Array.isArray(clinic.coordinates) || 
+            clinic.coordinates.length !== 2 ||
+            isNaN(clinic.coordinates[0]) || 
+            isNaN(clinic.coordinates[1])) {
+          console.warn(`Invalid coordinates for clinic ${clinic.name}:`, clinic.coordinates)
+          return null
+        }
+
+        const [lat, lng] = clinic.coordinates
+        
+        // Validate lat/lng ranges
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          console.warn(`Coordinates out of range for clinic ${clinic.name}:`, clinic.coordinates)
+          return null
+        }
+
+        return (
+          <Marker
+            key={clinic.id}
+            position={[lat, lng]}
+            icon={clinic.featured ? greenClinicIcon : clinicIcon}
+            eventHandlers={{
+              click: () => {
+                onClinicSelect(clinic.id)
+              },
+            }}
+          >
+            <Popup>
+              <div className="p-2 min-w-[250px]">
+                <h3 className="font-bold text-lg mb-2">{clinic.name}</h3>
+                <p className="text-sm text-gray-600 mb-2">{clinic.address}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-yellow-500">★</span>
+                  <span className="font-semibold">{clinic.rating}</span>
+                </div>
+                <div className="mb-2">
+                  <p className="text-sm text-gray-600">Specialties:</p>
+                  <p className="text-sm font-medium">{clinic.specialties.slice(0, 2).join(", ")}</p>
+                </div>
+                <div className="mb-3">
+                  <p className="text-sm text-gray-600">Next available:</p>
+                  <p className="text-sm font-medium text-green-600">
+                    {clinic.next_available || "Call for availability"}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onClinicSelect(clinic.id)
+                    }}
+                  >
+                    View Details
+                  </button>
+                  <a
+                    href={`tel:${clinic.phone}`}
+                    className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-200 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Call
+                  </a>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        )
+      })}
     </>
+  )
+}
+
+// Map bounds adjustment component
+function MapBounds({ clinics }: { clinics: Clinic[] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    const validClinics = clinics.filter(clinic => 
+      clinic.coordinates && 
+      Array.isArray(clinic.coordinates) && 
+      clinic.coordinates.length === 2 &&
+      !isNaN(clinic.coordinates[0]) && 
+      !isNaN(clinic.coordinates[1]) &&
+      clinic.coordinates[0] >= -90 && clinic.coordinates[0] <= 90 &&
+      clinic.coordinates[1] >= -180 && clinic.coordinates[1] <= 180
+    )
+
+    if (validClinics.length === 0) {
+      // Default to Almaty if no valid coordinates
+      map.setView([43.2565, 76.9285], 12)
+      return
+    }
+
+    if (validClinics.length === 1) {
+      // Center on single clinic
+      const [lat, lng] = validClinics[0].coordinates
+      map.setView([lat, lng], 15)
+      return
+    }
+
+    // Fit bounds to show all clinics
+    try {
+      const bounds = L.latLngBounds(
+        validClinics.map(clinic => [clinic.coordinates[0], clinic.coordinates[1]])
+      )
+      map.fitBounds(bounds, { padding: [20, 20] })
+    } catch (error) {
+      console.error('Error fitting bounds:', error)
+      // Fallback to Almaty center
+      map.setView([43.2565, 76.9285], 12)
+    }
+  }, [map, clinics])
+
+  return null
+}
+
+export default function LeafletMap({ clinics, onClinicSelect }: MapProps) {
+  const almatyCoordinates: L.LatLngTuple = [43.2565, 76.9285]
+
+  return (
+    <MapContainer
+      center={almatyCoordinates}
+      zoom={12}
+      scrollWheelZoom={true}
+      className="h-full w-full"
+      style={{ minHeight: '400px' }}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <MapMarkers clinics={clinics} onClinicSelect={onClinicSelect} />
+      <MapBounds clinics={clinics} />
+    </MapContainer>
   )
 }

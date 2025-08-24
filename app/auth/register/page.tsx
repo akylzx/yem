@@ -1,8 +1,6 @@
 "use client"
 
 import type React from "react"
-
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,11 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { Eye, EyeOff, Heart, AlertCircle, CheckCircle } from "lucide-react"
+import { useFormStatus } from "react-dom"
+import { handleRegister, handleOAuthRegister } from "./actions"
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -31,80 +30,11 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [acceptPrivacy, setAcceptPrivacy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
-  const router = useRouter()
+  const { pending } = useFormStatus()
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const validateForm = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      return false
-    }
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long")
-      return false
-    }
-    if (!acceptTerms || !acceptPrivacy) {
-      setError("Please accept the terms and privacy policy")
-      return false
-    }
-    return true
-  }
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!validateForm()) return
-
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/profile`,
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            display_name: `${formData.firstName} ${formData.lastName}`,
-            phone: formData.phone,
-            date_of_birth: formData.dateOfBirth,
-            gender: formData.gender,
-          },
-        },
-      })
-      if (error) throw error
-      router.push("/auth/verify-email")
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleOAuthRegister = async (provider: "google" | "github" | "microsoft") => {
-    const supabase = createClient()
-    setOauthLoading(provider)
-    setError(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/profile`,
-        },
-      })
-      if (error) throw error
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
-      setOauthLoading(null)
-    }
   }
 
   const passwordStrength = (password: string) => {
@@ -238,7 +168,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-4">
+            <form action={handleRegister} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
@@ -246,8 +176,7 @@ export default function RegisterPage() {
                     id="firstName"
                     type="text"
                     placeholder="John"
-                    value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    name="firstName"
                     required
                     className="h-11"
                   />
@@ -258,8 +187,7 @@ export default function RegisterPage() {
                     id="lastName"
                     type="text"
                     placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    name="lastName"
                     required
                     className="h-11"
                   />
@@ -272,8 +200,7 @@ export default function RegisterPage() {
                   id="email"
                   type="email"
                   placeholder="your.email@example.com"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  name="email"
                   required
                   className="h-11"
                 />
@@ -286,8 +213,7 @@ export default function RegisterPage() {
                     id="phone"
                     type="tel"
                     placeholder="+1 (555) 123-4567"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    name="phone"
                     className="h-11"
                   />
                 </div>
@@ -296,8 +222,7 @@ export default function RegisterPage() {
                   <Input
                     id="dateOfBirth"
                     type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
+                    name="dateOfBirth"
                     className="h-11"
                   />
                 </div>
@@ -305,7 +230,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
-                <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
+                <Select name="gender">
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select your gender" />
                   </SelectTrigger>
@@ -325,8 +250,7 @@ export default function RegisterPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    name="password"
                     required
                     className="h-11 pr-10"
                   />
@@ -338,21 +262,6 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {formData.password && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${getStrengthColor(passwordStrength(formData.password))}`}
-                          style={{ width: `${(passwordStrength(formData.password) / 5) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-600">
-                        {getStrengthText(passwordStrength(formData.password))}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -362,8 +271,7 @@ export default function RegisterPage() {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    name="confirmPassword"
                     required
                     className="h-11 pr-10"
                   />
@@ -375,20 +283,13 @@ export default function RegisterPage() {
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-xs">Passwords match</span>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-start space-x-2">
                   <Checkbox
                     id="terms"
-                    checked={acceptTerms}
-                    onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+                    name="terms"
                   />
                   <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
                     I agree to the{" "}
@@ -400,8 +301,7 @@ export default function RegisterPage() {
                 <div className="flex items-start space-x-2">
                   <Checkbox
                     id="privacy"
-                    checked={acceptPrivacy}
-                    onCheckedChange={(checked) => setAcceptPrivacy(checked as boolean)}
+                    name="privacy"
                   />
                   <Label htmlFor="privacy" className="text-sm text-gray-600 leading-relaxed">
                     I agree to the{" "}
@@ -412,19 +312,12 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {error && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
-
               <Button
                 type="submit"
                 className="w-full h-11 bg-green-500 hover:bg-green-600"
-                disabled={isLoading || !!oauthLoading}
+                disabled={pending || !!oauthLoading}
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {pending ? "Creating account..." : "Create Account"}
               </Button>
             </form>
 
@@ -440,5 +333,13 @@ export default function RegisterPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
   )
 }
