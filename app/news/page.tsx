@@ -159,27 +159,26 @@ export default function NewsPage() {
   return (
     <PageLayout>
       <SectionContainer background="white" size="lg">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Health News & Discoveries</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Health News & Discoveries</h1>
+          <p className="text-gray-600 text-lg mb-8">
             Stay updated with the latest medical research, breakthrough treatments, and healthcare innovations
           </p>
 
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 placeholder="Search articles, topics, or keywords..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12"
+                className="pl-10 h-12 border-gray-200 focus:border-green-500 focus:ring-green-500"
               />
             </div>
             <div className="relative">
               <Button
                 variant="outline"
-                className="gap-2 bg-transparent"
+                className="gap-2 h-12 px-6 border-gray-200 hover:bg-gray-50 bg-transparent"
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
               >
                 <ArrowUpDown className="w-4 h-4" />
@@ -208,17 +207,18 @@ export default function NewsPage() {
           </div>
         </div>
 
-        {/* Categories */}
         <div className="mb-8">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {categories.map((category) => (
               <Button
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
-                className={`gap-2 ${
-                  selectedCategory === category ? "bg-green-600 hover:bg-green-700" : "bg-transparent hover:bg-gray-50"
+                className={`gap-2 h-10 px-4 ${
+                  selectedCategory === category
+                    ? "bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 {category !== "All" && categoryIcons[category as keyof typeof categoryIcons]}
@@ -228,51 +228,42 @@ export default function NewsPage() {
           </div>
         </div>
 
-        {/* Results Summary */}
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-gray-600">
-            {sortedArticles.length} articles found
-            {selectedCategory !== "All" && ` in ${selectedCategory}`}
-            {searchTerm && ` for "${searchTerm}"`}
-            {sortBy !== "newest" && ` • Sorted by ${sortOptions.find((opt) => opt.value === sortBy)?.label}`}
-          </p>
-          <div className="flex gap-2">
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              {favorites.length} Favorites
-            </Badge>
-          </div>
+        <div className="flex items-center justify-between mb-8">
+          <p className="text-gray-600 text-sm">{sortedArticles.length} articles found</p>
+          <Link href="#" className="text-green-600 hover:text-green-700 text-sm font-medium">
+            {favorites.length} Favorites
+          </Link>
         </div>
 
-        {/* Featured Articles */}
         {featuredArticles.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Featured Stories</h2>
-            <div className="grid md:grid-cols-2 gap-6">
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Stories</h2>
+            <div className="grid md:grid-cols-2 gap-8">
               {featuredArticles.map((article) => (
-                <Card key={article.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <Card key={article.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
                   <div className="relative">
                     <img
                       src={article.image || "/placeholder.svg"}
                       alt={article.title}
                       className="w-full h-48 object-cover"
                     />
-                    <Badge className="absolute top-3 left-3 bg-green-600">Featured</Badge>
+                    <Badge className="absolute top-4 left-4 bg-green-600 text-white">Featured</Badge>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleFavorite(article.id)}
-                      className="absolute top-3 right-3 bg-white/90 hover:bg-white"
+                      className="absolute top-4 right-4 bg-white/90 hover:bg-white"
                     >
                       {favorites.includes(article.id) ? (
                         <BookmarkCheck className="w-4 h-4 text-green-600" />
                       ) : (
-                        <Bookmark className="w-4 h-4" />
+                        <Bookmark className="w-4 h-4 text-gray-600" />
                       )}
                     </Button>
                   </div>
                   <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Badge variant="secondary" className="text-xs">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-xs">
                         {article.category}
                       </Badge>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -280,17 +271,21 @@ export default function NewsPage() {
                         {article.readTime}
                       </div>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{article.title}</h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{article.excerpt}</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">{article.title}</h3>
+                    <p className="text-gray-600 text-sm mb-6 line-clamp-3">{article.excerpt}</p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <User className="w-3 h-3" />
+                        <User className="w-4 h-4" />
                         <span>{article.author}</span>
                         <span>•</span>
                         <span>{new Date(article.publishDate).toLocaleDateString()}</span>
                       </div>
                       <Link href={`/news/${article.id}`}>
-                        <Button size="sm" variant="outline" className="bg-transparent">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-gray-200 text-gray-700 hover:bg-gray-50 bg-transparent"
+                        >
                           Read More
                         </Button>
                       </Link>
@@ -308,7 +303,10 @@ export default function NewsPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Latest Articles</h2>
             <div className="grid gap-6">
               {regularArticles.map((article) => (
-                <Card key={article.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <Card
+                  key={article.id}
+                  className="overflow-hidden hover:shadow-md transition-shadow dark:bg-gray-800 dark:border-gray-800"
+                >
                   <CardContent className="p-0">
                     <div className="grid md:grid-cols-4 gap-0">
                       <div className="md:col-span-1">
@@ -321,10 +319,10 @@ export default function NewsPage() {
                       <div className="md:col-span-3 p-6">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-xs dark:bg-gray-700 dark:text-gray-200">
                               {article.category}
                             </Badge>
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                               <Clock className="w-3 h-3" />
                               {article.readTime}
                             </div>
@@ -333,12 +331,12 @@ export default function NewsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleFavorite(article.id)}
-                            className="hover:bg-gray-100"
+                            className="hover:bg-gray-100 dark:hover:bg-gray-700"
                           >
                             {favorites.includes(article.id) ? (
                               <BookmarkCheck className="w-4 h-4 text-green-600" />
                             ) : (
-                              <Bookmark className="w-4 h-4" />
+                              <Bookmark className="w-4 h-4 dark:text-white" />
                             )}
                           </Button>
                         </div>
@@ -346,20 +344,27 @@ export default function NewsPage() {
                         <p className="text-gray-600 mb-4">{article.excerpt}</p>
                         <div className="flex flex-wrap gap-2 mb-4">
                           {article.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs dark:border-gray-700 dark:text-gray-200"
+                            >
                               {tag}
                             </Badge>
                           ))}
                         </div>
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                             <User className="w-4 h-4" />
                             <span>{article.author}</span>
                             <span>•</span>
                             <span>{new Date(article.publishDate).toLocaleDateString()}</span>
                           </div>
                           <Link href={`/news/${article.id}`}>
-                            <Button variant="outline" className="bg-transparent">
+                            <Button
+                              variant="outline"
+                              className="bg-transparent dark:bg-gray-700 dark:border-gray-700 dark:text-white dark:hover:bg-gray-600"
+                            >
                               Read Full Article
                             </Button>
                           </Link>
